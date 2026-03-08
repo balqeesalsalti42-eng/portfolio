@@ -1,0 +1,262 @@
+{% extends "layout.html" %} {% block title %}Admin Dashboard - Cyber Help Center{% endblock %} {% block header_title %}Admin Dashboard{% endblock %} {% block header_subtitle %}Review incidents and analyze trends with interactive charts.{% endblock %}
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .action-button-view-details {
+        display: inline-block;
+        padding: 5px 10px;
+        font-size: 0.85em;
+        color: #fff !important;
+        background-color: #17a2b8;
+        /* Teal */
+        border: none;
+        border-radius: 4px;
+        text-decoration: none !important;
+        text-align: center;
+        line-height: 1.5;
+        margin-right: 5px;
+        vertical-align: middle;
+    }
+    
+    .action-button-view-details:hover {
+        background-color: #138496;
+        color: #fff !important;
+    }
+    
+    .action-button-delete {
+        display: inline-block;
+        padding: 5px 10px;
+        font-size: 0.85em;
+        color: #fff !important;
+        background-color: #dc3545;
+        /* Red */
+        border: none;
+        border-radius: 4px;
+        text-decoration: none !important;
+        cursor: pointer;
+        text-align: center;
+        line-height: 1.5;
+        vertical-align: middle;
+    }
+    
+    .action-button-delete:hover {
+        background-color: #c82333;
+        color: #fff !important;
+    }
+</style>
+{% endblock %} {% block content %}
+
+<section class="admin-section">
+    <h2 class="section-title">Cyber Incident Analytics Dashboard</h2>
+    <div class="analytics-grid">
+        <div class="analytics-card">
+            <h3>Overall Statistics</h3>
+            {% if total_reports > 0 %}
+            <p><strong>Total Reports:</strong> {{ total_reports }}</p>
+            <p><strong>First Report:</strong> {{ first_report_date.strftime('%b %d, %Y') if first_report_date else 'N/A' }}</p>
+            <p><strong>Last Report:</strong> {{ last_report_date.strftime('%b %d, %Y') if last_report_date else 'N/A' }}</p>
+            <p><strong>Avg Reports/Day:</strong> {{ "%.2f"|format(avg_reports_per_day) }}</p>
+            {% else %}
+            <p class="no-data">No reports for overall statistics.</p> {% endif %}
+        </div>
+        <div class="analytics-card">
+            <h3>Evidence Submission</h3>
+            {% if total_reports > 0 %}
+            <p><strong>With Evidence:</strong> {{ reports_with_evidence }} (<span class="percentage">{{ "%.1f"|format(reports_with_evidence * 100.0 / total_reports if total_reports else 0) }}%</span>)</p>
+            <p><strong>Without Evidence:</strong> {{ reports_without_evidence }} (<span class="percentage">{{ "%.1f"|format(reports_without_evidence * 100.0 / total_reports if total_reports else 0) }}%</span>)</p>
+            {% else %}
+            <p class="no-data">No reports for evidence analysis.</p> {% endif %}
+        </div>
+    </div>
+    <div class="charts-grid">
+        <div class="chart-container">
+            <h3>Incident Type Distribution</h3>
+            <canvas id="incidentTypeChart"></canvas>
+            <p class="no-data chart-no-data" id="incidentTypeChartNoData" style="display: none;">No data for chart.</p>
+        </div>
+        <div class="chart-container">
+            <h3>Reports Over Time (Monthly)</h3>
+            <canvas id="monthlyReportsChart"></canvas>
+            <p class="no-data chart-no-data" id="monthlyReportsChartNoData" style="display: none;">No data for chart.</p>
+        </div>
+        <div class="chart-container">
+            <h3>Reports by Day of Week</h3>
+            <canvas id="dowReportsChart"></canvas>
+            <p class="no-data chart-no-data" id="dowReportsChartNoData" style="display: none;">No data for chart.</p>
+        </div>
+        <div class="chart-container">
+            <h3>Reports by Hour of Day (UTC)</h3>
+            <canvas id="hourlyReportsChart"></canvas>
+            <p class="no-data chart-no-data" id="hourlyReportsChartNoData" style="display: none;">No data for chart.</p>
+        </div>
+    </div>
+    <div class="analytics-subsection tables-subsection" style="margin-top: 40px;">
+        <h3 class="section-title">Detailed Data Tables</h3>
+        <details>
+            <summary>View Detailed Tables</summary>
+            <div class="table-group">
+                <h4>Incident Type Breakdown</h4>
+                {% if report_type_analysis_table and total_reports > 0 %}
+                <table class="admin-table analytics-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Count</th>
+                            <th>%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in report_type_analysis_table %}
+                        <tr>
+                            <td>{{ item.incident_type }}</td>
+                            <td>{{ item.count }}</td>
+                            <td>{{ "%.1f"|format(item.count*100.0/total_reports) }}%</td>
+                        </tr>{% endfor %}</tbody>
+                </table>
+                {% else %}
+                <p class="no-data">No data.</p>{% endif %}</div>
+            <div class="table-group">
+                <h4>Reports Per Month</h4>
+                {% if reports_per_month_table %}
+                <table class="admin-table analytics-table">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in reports_per_month_table %}
+                        <tr>
+                            <td>{{ item.month_year }}</td>
+                            <td>{{ item.count }}</td>
+                        </tr>{% endfor %}</tbody>
+                </table>
+                {% else %}
+                <p class="no-data">No data.</p>{% endif %}</div>
+            <div class="table-group">
+                <h4>Reports by Day of Week</h4>
+                {% if reports_by_day_of_week_table %}
+                <table class="admin-table analytics-table">
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for day, count in reports_by_day_of_week_table %}
+                        <tr>
+                            <td>{{ day }}</td>
+                            <td>{{ count }}</td>
+                        </tr>{% endfor %}</tbody>
+                </table>
+                {% else %}
+                <p class="no-data">No data.</p>{% endif %}</div>
+            <div class="table-group">
+                <h4>Reports by Hour (UTC)</h4>
+                {% if reports_by_hour_table %}
+                <table class="admin-table analytics-table">
+                    <thead>
+                        <tr>
+                            <th>Hour</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for hour, count in reports_by_hour_table %}
+                        <tr>
+                            <td>{{ hour }}</td>
+                            <td>{{ count }}</td>
+                        </tr>{% endfor %}</tbody>
+                </table>
+                {% else %}
+                <p class="no-data">No data.</p>{% endif %}</div>
+        </details>
+    </div>
+</section>
+
+<section class="admin-section">
+    <h2 class="section-title">All Submitted Incident Reports (Most Recent First)</h2>
+    {% if reports %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Timestamp</th>
+                <th>Incident Type</th>
+                <th>Reporter Name</th>
+                <th>Reporter Email</th>
+                <th>Reporter Phone</th>
+                <th>Evidence</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for report in reports %}
+            <tr>
+                <td>{{ report.id }}</td>
+                <td>{{ report.timestamp.strftime('%Y-%m-%d %H:%M:%S') if report.timestamp else 'N/A' }}</td>
+                <td>{{ report.incident_type }}</td>
+                <td>{{ report.reporter_name if report.reporter_name else 'N/A' }}</td>
+                <td>{{ report.reporter_email if report.reporter_email else 'N/A' }}</td>
+                <td>{{ report.reporter_phone if report.reporter_phone else 'N/A' }}</td>
+                <td>
+                    {% if report.evidence %} {% set evidence_filename = report.evidence.split('/')[-1].split('\\')[-1] %}
+                    <a href="{{ url_for('uploaded_file', filename=evidence_filename) }}" target="_blank">
+                            {% if evidence_filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')) %}
+                                <img src="{{ url_for('uploaded_file', filename=evidence_filename) }}" alt="Thumb" class="evidence-img"><br>{{ evidence_filename }}
+                            {% else %} {{ evidence_filename }} {% endif %}
+                        </a> {% else %} No evidence {% endif %}
+                </td>
+                <td>
+                    <a href="{{ url_for('view_report_detail', report_id=report.id) }}" class="action-button-view-details">Details</a>
+                    <form method="POST" action="{{ url_for('delete_report', report_id=report.id) }}" style="display: inline;" onsubmit="return confirm('Delete Report ID {{ report.id }}? This cannot be undone.');">
+                        <button type="submit" class="action-button-delete">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="no-data">No incident reports submitted yet.</p>{% endif %}
+</section>
+
+<section class="admin-section">
+    <h2 class="section-title">All Contact Messages (Most Recent First)</h2>
+    {% if contact_messages %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Timestamp</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Message</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for message in contact_messages %}
+            <tr>
+                <td>{{ message.id }}</td>
+                <td>{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') if message.timestamp else 'N/A' }}</td>
+                <td>{{ message.full_name }}</td>
+                <td>{{ message.email }}</td>
+                <td><pre>{{ message.message }}</pre></td>
+                <td>
+                    <form method="POST" action="{{ url_for('delete_contact_message', message_id=message.id) }}" style="display: inline;" onsubmit="return confirm('Delete Contact Message ID {{ message.id }}? This cannot be undone.');">
+                        <button type="submit" class="action-button-delete">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="no-data">No contact messages received yet.</p>{% endif %}
+</section>
+
+<script src="{{ url_for('static', filename='admin_charts.js') }}"></script>
+{% endblock %}

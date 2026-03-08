@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Cyber Incident Help Center{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"> {% block head_extra %}{% endblock %}
+</head>
+
+<body>
+    <header>
+        <h1>{% block header_title %}Cyber Incident Help Center{% endblock %}</h1>
+        <p>{% block header_subtitle %}Your resource for reporting and understanding cyber threats.{% endblock %}</p>
+    </header>
+
+    <nav class="main-nav">
+        <a href="{{ url_for('index') }}">Report Incident</a>
+        <a href="{{ url_for('about') }}">Awareness & About</a>
+        <a href="{{ url_for('contact') }}">Contact Us</a> {% if session.admin_logged_in %}
+        <a href="{{ url_for('admin') }}">Admin Dashboard</a>
+        <a href="{{ url_for('logout') }}">Logout ({{ session.get('admin_username', 'Admin') }})</a> {% else %}
+        <a href="{{ url_for('login') }}">Admin Login</a> {% endif %}
+    </nav>
+
+    <main>
+        {# Global flash messages section #} {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
+        <div class="flash-messages-container">
+            {% for category, message in messages %} {# Avoid duplicating form-specific errors if handled within form sections #} {% if not (('required fields' in message or 'contact message' in message or 'Invalid username or password' in message) and (request.endpoint
+            in ['submit_report', 'contact', 'login'])) %}
+            <div class="flash-message flash-{{ category }}">{{ message }}</div>
+            {% endif %} {% endfor %}
+        </div>
+        {% endif %} {% endwith %} {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>© {{ current_year }} Cyber Incident Help Center | All Rights Reserved</p>
+    </footer>
+</body>
+
+</html>

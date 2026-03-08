@@ -1,0 +1,96 @@
+{% extends "layout.html" %} {% block title %}Incident Report #{{ report.id }} - Admin{% endblock %} {% block header_title %}Incident Report Details{% endblock %} {% block header_subtitle %}Case ID: {{ report.id }}{% endblock %} {% block content %}
+<section class="admin-section report-detail-section">
+    <div class="report-actions">
+        <a href="{{ url_for('admin') }}" class="button-link-secondary button-like-link">« Back to Admin Dashboard</a>
+        <a href="{{ url_for('download_report_pdf', report_id=report.id) }}" class="button-link-primary button-like-link">Download Full Forensic PDF Report</a>
+    </div>
+
+    <h2 class="section-title">Incident Information</h2>
+    <table class="admin-table detail-table">
+        <tr>
+            <th>Report ID</th>
+            <td>{{ report.id }}</td>
+        </tr>
+        <tr>
+            <th>Timestamp</th>
+            <td>{{ report.timestamp.strftime('%Y-%m-%d %H:%M:%S') if report.timestamp else 'N/A' }}</td>
+        </tr>
+        <tr>
+            <th>Reporter IP Address</th>
+            <td>{{ report.reporter_ip if report.reporter_ip else 'N/A' }}</td>
+        </tr>
+        <tr>
+            <th>Incident Type</th>
+            <td>{{ report.incident_type }}</td>
+        </tr>
+        <tr>
+            <th>Description</th>
+            <td><pre>{{ report.description }}</pre></td>
+        </tr>
+        <tr>
+            <th>Reporter Full Name</th>
+            <td>{{ report.reporter_name if report.reporter_name else 'N/A' }}</td>
+        </tr>
+        <tr>
+            <th>Reporter Email</th>
+            <td>{{ report.reporter_email if report.reporter_email else 'N/A' }}</td>
+        </tr>
+        <tr>
+            <th>Reporter Phone</th>
+            <td>{{ report.reporter_phone if report.reporter_phone else 'N/A' }}</td>
+        </tr>
+        <tr>
+            <th>Evidence File</th>
+            <td>
+                {% if report.evidence %} {% set evidence_filename = report.evidence.split('/')[-1].split('\\')[-1] %}
+                <a href="{{ url_for('uploaded_file', filename=evidence_filename) }}" target="_blank">{{ evidence_filename }}</a> {% if evidence_filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')) %}
+                <img src="{{ url_for('uploaded_file', filename=evidence_filename) }}" alt="Evidence Preview" class="evidence-preview-detail"> {% endif %} {% else %} No evidence uploaded. {% endif %}
+            </td>
+        </tr>
+    </table>
+
+    {% if report.evidence %}
+    <h2 class="section-title" style="margin-top: 30px;">Forensic Insights for Evidence File</h2>
+    {% if forensic_data %} {% if forensic_data.error %}
+    <div class="flash-message flash-error">{{ forensic_data.error }}</div>
+    {% else %}
+    <table class="admin-table detail-table">
+        {% for key, value in forensic_data.items() %} {% if value and key not in ['error', 'extraction_error', 'exif_error', 'pdf_error', 'ole_error'] %}
+        <tr>
+            <th style="width: 30%;">{{ key.replace('_', ' ').title() }}</th>
+            <td>
+                {% if key == 'extracted_text_preview' %}
+                <pre>{{ value }}</pre> {% elif value is mapping %}
+                <ul style="list-style-type: none; padding-left: 0;">
+                    {% for sub_key, sub_value in value.items() %}
+                    <li><strong>{{ sub_key.replace('_', ' ').title() }}:</strong> {{ sub_value }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %} {{ value }} {% endif %}
+            </td>
+        </tr>
+        {% endif %} {% endfor %}
+    </table>
+    {% if forensic_data.extraction_error %}
+    <div class="flash-message flash-warning">Note: {{ forensic_data.extraction_error }}</div>{% endif %} {% if forensic_data.exif_error %}
+    <div class="flash-message flash-info">Note on EXIF: {{ forensic_data.exif_error }}</div>{% endif %} {% if forensic_data.pdf_error %}
+    <div class="flash-message flash-info">Note on PDF: {{ forensic_data.pdf_error }}</div>{% endif %} {% if forensic_data.ole_error %}
+    <div class="flash-message flash-info">Note on OLE: {{ forensic_data.ole_error }}</div>{% endif %} {% endif %} {% else %}
+    <p class="no-data">Forensic data processing not initiated or file might be unsupported for deep analysis.</p>
+    {% endif %} {% endif %}
+
+    <h2 class="section-title" style="margin-top: 30px;">Suggested Investigative Framework for: {{ report.incident_type }}</h2>
+    {% if framework_steps %}
+    <div class="framework-instructions">
+        <ol>
+            {% for step in framework_steps %}
+            <li>{{ step|safe }}</li>
+            {% endfor %}
+        </ol>
+    </div>
+    {% else %}
+    <p class="no-data">No specific investigative framework steps available for this incident type.</p>
+    {% endif %}
+
+</section>
+{% endblock %}

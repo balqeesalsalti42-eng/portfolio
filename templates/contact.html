@@ -1,0 +1,31 @@
+{% extends "layout.html" %} {% block title %}Contact Us - Cyber Help Center{% endblock %} {% block header_title %}Contact Us{% endblock %} {% block header_subtitle %}Get in touch with our support team.{% endblock %} {% block content %}
+<section class="form-section">
+    <h2>Send Us a Message</h2>
+    <p>If you have any questions, feedback, or need assistance with non-urgent matters related to this platform, feel free to reach out. All fields are required.</p>
+    <p><strong>For emergencies or to report an active crime, please contact your local law enforcement.</strong></p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %} {% for category, message in messages %} {# Show errors specific to this form, or success messages. The backslash was removed from the end of the first line of the 'if'
+    condition. #} {% if (category == 'error' and ('contact message' in message or 'All fields' in message) and request.endpoint == 'contact') or (category == 'success' and 'message has been sent' in message and request.endpoint == 'contact') %}
+    <div class="flash-message flash-{{ category }}">{{ message }}</div>
+    {% endif %} {% endfor %} {% endif %} {% endwith %}
+
+    <form action="{{ url_for('contact') }}" method="POST">
+        <div class="form-group">
+            <label for="full-name">Full Name: *</label>
+            <input type="text" id="full-name" name="full_name" placeholder="Your full name" value="{{ full_name or '' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email Address: *</label>
+            <input type="email" id="email" name="email" placeholder="your.email@example.com" value="{{ email or '' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="message">Your Message: *</label>
+            <textarea id="message" name="message" rows="5" placeholder="Type your message here..." required>{{ message or '' }}</textarea>
+        </div>
+
+        <button type="submit" class="button-link">Send Message</button>
+    </form>
+</section>
+{% endblock %}
